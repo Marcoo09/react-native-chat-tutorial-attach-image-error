@@ -1,114 +1,71 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow strict-local
- */
-
-import React from 'react';
+import React, {useEffect, useState} from 'react';
+import {StyleSheet, View} from 'react-native';
+import {StreamChat} from 'stream-chat';
 import {
+  Channel,
+  Chat,
+  MessageInput,
+  MessageList,
+  OverlayProvider as ChatOverlayProvider,
+} from 'stream-chat-react-native';
+import {
+  SafeAreaProvider,
   SafeAreaView,
-  StyleSheet,
-  ScrollView,
-  View,
-  Text,
-  StatusBar,
-} from 'react-native';
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
-import {
-  Header,
-  LearnMoreLinks,
-  Colors,
-  DebugInstructions,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+const userToken =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoicm9uIn0.eRVjxLvd4aqCEHY_JRa97g6k7WpHEhxL7Z4K4yTot1c';
 
-const App = () => {
+const user = {
+  id: 'ron',
+};
+
+const chatClient = StreamChat.getInstance('q95x9hkbyd6p');
+const connectUserPromise = chatClient.connectUser(user, userToken);
+
+const channel = chatClient.channel('messaging', 'channel_id');
+
+const ChannelScreen = () => {
+  const {bottom} = useSafeAreaInsets();
+
   return (
-    <>
-      <StatusBar barStyle="dark-content" />
+    <ChatOverlayProvider bottomInset={bottom} topInset={0}>
       <SafeAreaView>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={styles.scrollView}>
-          <Header />
-          {global.HermesInternal == null ? null : (
-            <View style={styles.engine}>
-              <Text style={styles.footer}>Engine: Hermes</Text>
+        <Chat client={chatClient}>
+          {/* Setting keyboardVerticalOffset as 0, since we don't have any header yet */}
+          <Channel channel={channel} keyboardVerticalOffset={0}>
+            <View style={StyleSheet.absoluteFill}>
+              <MessageList />
+              <MessageInput />
             </View>
-          )}
-          <View style={styles.body}>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Step One</Text>
-              <Text style={styles.sectionDescription}>
-                Edit <Text style={styles.highlight}>App.js</Text> to change this
-                screen and then come back to see your edits.
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>See Your Changes</Text>
-              <Text style={styles.sectionDescription}>
-                <ReloadInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Debug</Text>
-              <Text style={styles.sectionDescription}>
-                <DebugInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Learn More</Text>
-              <Text style={styles.sectionDescription}>
-                Read the docs to discover what to do next:
-              </Text>
-            </View>
-            <LearnMoreLinks />
-          </View>
-        </ScrollView>
+          </Channel>
+        </Chat>
       </SafeAreaView>
-    </>
+    </ChatOverlayProvider>
   );
 };
 
-const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: Colors.lighter,
-  },
-  engine: {
-    position: 'absolute',
-    right: 0,
-  },
-  body: {
-    backgroundColor: Colors.white,
-  },
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.black,
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-    color: Colors.dark,
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-  footer: {
-    color: Colors.dark,
-    fontSize: 12,
-    fontWeight: '600',
-    padding: 4,
-    paddingRight: 12,
-    textAlign: 'right',
-  },
-});
+export default function App() {
+  const [ready, setReady] = useState();
 
-export default App;
+  useEffect(() => {
+    const initChat = async () => {
+      await connectUserPromise;
+      await channel.watch();
+      setReady(true);
+    };
+
+    initChat();
+  }, []);
+
+  if (!ready) {
+    return null;
+  }
+
+  return (
+    <SafeAreaProvider>
+      <ChannelScreen channel={channel} />
+    </SafeAreaProvider>
+  );
+}
